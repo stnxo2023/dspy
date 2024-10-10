@@ -1,5 +1,5 @@
 ---
-sidebar_position: 9
+sidebar_position: 10
 ---
 
 # retrieve.SnowflakeRM
@@ -14,8 +14,7 @@ SnowflakeRM(
      cortex_search_service: str,
      snowflake_database: str,
      snowflake_schema: dict,
-     retrieval_columns: list,
-     search_filter: dict = None,
+     auto_filter:bool,
      k: int = 3,
 )
 ```
@@ -26,8 +25,7 @@ SnowflakeRM(
 - `cortex_search_service (str)`: The name of the Cortex Search service to be used.
 - `snowflake_database (str)`: The name of the Snowflake database to be used with the Cortex Search service.
 - `snowflake_schema (str)`: The name of the Snowflake schema to be used with the Cortex Search service.
-- `retrieval_columns (str)`: A list of columns to return for each relevant result in the response.
-- `search_filter (dict, optional)`: Optional filter object used for filtering results based on data in the ATTRIBUTES columns. See [Filter syntax](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-search/query-cortex-search-service#filter-syntax)
+- `auto_filter (bool)`: Auto-generate metadata filter and push it down to Cortex Search service prior to retrieving results.
 - `k (int, optional)`: The number of top passages to retrieve. Defaults to 3.
 
 ### Methods
@@ -39,6 +37,8 @@ Query the Cortex Search service to retrieve the top k relevant results given a q
 **Parameters:**
 
 - `query_or_queries` (_Union[str, List[str]]_): The query or list of queries to search for.
+- `retrieval_columns` (str)`: A list of columns to return for each relevant result in the response.
+- `search_filter` (_Optional[dict]_): Optional filter object used for filtering results based on data in the ATTRIBUTES columns. See [Filter syntax](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-search/query-cortex-search-service#filter-syntax)
 - `k` (_Optional[int]_): The number of results to retrieve. If not specified, defaults to the value set during initialization.
 
 **Returns:**
@@ -47,7 +47,7 @@ Query the Cortex Search service to retrieve the top k relevant results given a q
 
 ### Quickstart
 
-To support passage retrieval from a Snowflake table with this integration, a Cortex Search endpoint must be configured.
+To support passage retrieval from a Snowflake table with this integration, a [Cortex Search](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-search/cortex-search-overview) endpoint must first be configured.
 
 ```python
 from dspy.retrieve.snowflake_rm import SnowflakeRM
@@ -68,12 +68,14 @@ connection_parameters = {
 snowpark = Session.builder.configs(connection_parameters).create()
 
 snowflake_retriever = SnowflakeRM(snowflake_session=snowpark,
-                                  snowflake_database="<YOUR_SNOWFLAKE_DATABASE_NAME>",
-                                  snowflake_schema="<YOUR_SNOWFLAKE_SCHEMA_NAME>",
-                                  cortex_search_service="<YOUR_CORTEX_SERACH_SERVICE_NAME>",
-                                  k = 5)
+    cortex_search_service="<YOUR_CORTEX_SERACH_SERVICE_NAME>",
+    snowflake_database="<YOUR_SNOWFLAKE_DATABASE_NAME>",
+    snowflake_schema="<YOUR_SNOWFLAKE_SCHEMA_NAME>",
+    auto_filter=True,
+    k = 5)
 
-results = snowflake_retriever("Explore the meaning of life",response_columns=["<NAME_OF_COLUMN_CONTAINING_TEXT>"])
+results = snowflake_retriever("Explore the meaning of life",
+    response_columns=["<NAME_OF_INDEXED_COLUMN>","<NAME_OF_ATTRIBUTE_COLUMN"])
 
 for result in results:
     print("Document:", result.long_text, "\n")
